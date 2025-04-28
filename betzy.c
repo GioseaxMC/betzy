@@ -1,3 +1,6 @@
+// this file is not supposed to be standalone
+// errors will rise as libs are not included, and that's intended behaviour
+
 #define openfile(filename, buffer) do { \
     FILE* file = fopen(filename, "rb"); \
     if (!file) { \
