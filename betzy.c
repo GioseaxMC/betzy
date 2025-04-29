@@ -1,7 +1,7 @@
 // this file is not supposed to be standalone
 // errors will rise as libs are not included, and that's intended behaviour
 
-#define openfile(filename, buffer) do { \
+#define read_file(filename, buffer) do { \
     FILE* file = fopen(filename, "rb"); \
     if (!file) { \
         perror("Error opening file"); \
@@ -28,6 +28,37 @@
     fclose(file); \
 } while (0)
 
+static void crash(const char* msg) {
+    fprintf(stderr, "%s\n", msg);
+    fflush(stderr);
+    *(volatile int*)0 = 0;
+}
+
+// Open file for writing (overwrite)
+FILE* ofile_write(const char* filename) {
+    FILE* f = fopen(filename, "wb");
+    if (!f) {
+        crash("Failed to open file for writing");
+    }
+    return f;
+}
+
+// Open file for appending (preserve contents)
+FILE* ofile_append(const char* filename) {
+    FILE* f = fopen(filename, "ab");
+    if (!f) {
+        crash("Failed to open file for appending");
+    }
+    return f;
+}
+
+// Write data to a file
+void write_file(FILE* f, const void* data, size_t size) {
+    if (fwrite(data, 1, size, f) != size) {
+        crash("Failed to write to file");
+    }
+}
+
 #define foreach(__ptr, __len, __item_tn, __body)        \
         for (int __iter = 0; __iter < __len; __iter++)  \
             {                                           \
@@ -36,3 +67,56 @@
                     __body                              \
                 while(0);                               \
             }
+
+#ifndef DA_INIT_CAP
+#define DA_INIT_CAP 256
+#endif
+
+#define assert(cond) \
+    do { \
+        if (!(cond)) { \
+            fprintf(stderr, "Assertion failed: %s, file %s, line %d\n", \
+                    #cond, __FILE__, __LINE__); \
+            fflush(stderr); \
+            *(volatile int *)0 = 0; \
+        } \
+    } while (0)
+
+#define da_append(da, item) \
+    do { \
+        if ((da).count >= (da).capacity) { \
+            (da).capacity = (da).capacity == 0 ? DA_INIT_CAP : (da).capacity * 2; \
+            (da).items = realloc((da).items, (da).capacity * sizeof(*(da).items)); \
+            assert((da).items != NULL && "Buy more RAM brodie"); \
+        } \
+        (da).items[(da).count++] = (item); \
+    } while (0)
+
+#define streq(str1, str2) (strcmp(str1, str2) == 0)
+
+#define elif else if
+
+#define when(__cond, __body) case __cond: __body break;
+
+typedef char bool;
+
+#define not !
+
+#define true 1
+#define false 0
+
+#ifdef debugging
+bool DEBUGGING = true;
+#else
+bool DEBUGGING = false;
+#endif //debugging
+
+#define TC_RED     "\x1b[31m"
+#define TC_GREEN   "\x1b[32m"
+#define TC_YELLOW  "\x1b[33m"
+#define TC_BLUE    "\x1b[34m"
+#define TC_MAGENTA "\x1b[35m"
+#define TC_CYAN    "\x1b[36m"
+#define TC_RESET   "\x1b[0m"
+
+#define debug if (DEBUGGING)
